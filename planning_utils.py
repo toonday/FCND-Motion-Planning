@@ -2,6 +2,10 @@ from enum import Enum
 from queue import PriorityQueue
 import numpy as np
 
+def debug_print(*args):
+    if False:
+        str_args = (str(arg) for arg in args)
+        print(''.join(str_args))
 
 def create_grid(data, drone_altitude, safety_distance):
     """
@@ -140,7 +144,32 @@ def a_star(grid, h, start, goal):
     return path[::-1], path_cost
 
 
-
 def heuristic(position, goal_position):
     return np.linalg.norm(np.array(position) - np.array(goal_position))
+    #return np.abs(position[0] - goal_position[0]) + np.abs(position[1] - goal_position[1])
 
+
+def point_3d(p_2d):
+    return np.array([p_2d[0], p_2d[1], 1.]).reshape(1, -1)
+
+
+def collinearity_check(p1, p2, p3, epsilon=1e-6):   
+    m = np.concatenate((p1, p2, p3), 0)
+    det = np.linalg.det(m)
+    return abs(det) < epsilon
+
+
+def prune_path(path):
+    pruned_path = [p for p in path]
+    
+    i = 0
+    while i < len(pruned_path) - 2:
+        p1 = point_3d(pruned_path[i])
+        p2 = point_3d(pruned_path[i+1])
+        p3 = point_3d(pruned_path[i+2])
+        
+        if collinearity_check(p1, p2, p3):
+            pruned_path.remove(pruned_path[i+1])
+        else:
+            i += 1
+    return pruned_path
